@@ -1,10 +1,12 @@
-const VITE_API_URL = "http://localhost:3000";
-
 async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
-  const url = `${VITE_API_URL}${endpoint}`;
+  // Obtenha a URL da API das variáveis de ambiente
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+  const url = `${API_URL}${endpoint}`;
+
   const response = await fetch(url, {
     ...options,
     headers: {
