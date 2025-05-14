@@ -1,4 +1,5 @@
 import { Appointment } from "../types/appointment";
+import { useEffect, useState } from "react";
 
 interface AppointmentListProps {
   appointments: Appointment[];
@@ -29,17 +30,44 @@ const EmptyState = () => (
 const AppointmentDateTime = ({
   date,
   time,
+  isCurrent,
 }: {
   date: string;
   time: string;
+  isCurrent?: boolean;
 }) => (
-  <div className="flex items-center text-sm text-gray-500">
+  <div
+    className={`flex items-center text-sm ${
+      isCurrent ? "text-green-600 font-medium" : "text-gray-500"
+    }`}
+  >
     <span className="mr-2">{date}</span>
     <span>{time}</span>
+    {isCurrent && (
+      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+        Agora
+      </span>
+    )}
   </div>
 );
 
 const AppointmentItem = ({ appointment }: { appointment: Appointment }) => {
+  const [isCurrent, setIsCurrent] = useState(false);
+
+  useEffect(() => {
+    const checkCurrent = () => {
+      const now = new Date();
+      const start = new Date(appointment.start);
+      const end = new Date(appointment.end);
+      setIsCurrent(now >= start && now <= end);
+    };
+
+    checkCurrent();
+    const interval = setInterval(checkCurrent, 60000); // Verifica a cada minuto
+
+    return () => clearInterval(interval);
+  }, [appointment.start, appointment.end]);
+
   const date = new Date(appointment.start).toLocaleDateString([], {
     month: "short",
     day: "numeric",
@@ -56,14 +84,26 @@ const AppointmentItem = ({ appointment }: { appointment: Appointment }) => {
   });
 
   return (
-    <li className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
+    <li
+      className={`bg-white rounded-lg shadow-sm border ${
+        isCurrent ? "border-green-300" : "border-gray-100"
+      } overflow-hidden hover:shadow-md transition-all`}
+    >
       <div className="p-3 sm:p-4">
         <div className="flex items-center justify-between gap-4">
-          <h3 className="text-base font-medium text-gray-900 truncate flex-1">
+          <h3
+            className={`text-base font-medium ${
+              isCurrent ? "text-green-800" : "text-gray-900"
+            } truncate flex-1`}
+          >
             {appointment.title}
           </h3>
 
-          <AppointmentDateTime date={date} time={`${startTime} - ${endTime}`} />
+          <AppointmentDateTime
+            date={date}
+            time={`${startTime} - ${endTime}`}
+            isCurrent={isCurrent}
+          />
         </div>
       </div>
     </li>
