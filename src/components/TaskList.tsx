@@ -17,38 +17,83 @@ export const TaskList = ({
   const [error, setError] = useState<string | null>(null);
 
   const handleTaskCompletion = async (taskId: string, completed: boolean) => {
-    try {
-      setLoadingTaskId(taskId);
-      setError(null);
+    // Estado inicial
+    setLoadingTaskId(taskId);
+    setError(null);
 
-      // Atualização otimista
-      const updatedTasks = tasks.map((task) =>
+    // Backup do estado original para fallback
+    const originalTasks = [...tasks];
+
+    try {
+      // 1. Atualização otimista
+      const optimisticTasks = tasks.map((task) =>
         task._id === taskId ? { ...task, completed } : task
       );
-      onTasksUpdated(updatedTasks);
+      onTasksUpdated(optimisticTasks);
 
-      // Chamada API
-      await updateTask(appointmentId, taskId, { completed });
+      // 2. Tentativa de atualização com retry
+      const MAX_RETRIES = 3;
+      let retryCount = 0;
+      let lastError: Error | null = null;
 
-      // Confirmação da API
-      const confirmedTask = await getTask(appointmentId, taskId); // Você precisará criar esta função
-      const finalUpdatedTasks = tasks.map((task) =>
-        task._id === taskId ? confirmedTask : task
-      );
-      onTasksUpdated(finalUpdatedTasks);
+      while (retryCount < MAX_RETRIES) {
+        try {
+          const updatedTask = await updateTask(appointmentId, taskId, {
+            completed,
+          });
+
+          // Verificação adicional dos dados retornados
+          if (updatedTask._id !== taskId) {
+            throw new Error("Task ID mismatch in response");
+          }
+
+          // Atualização confirmada
+          const confirmedTasks = tasks.map((task) =>
+            task._id === taskId ? updatedTask : task
+          );
+          onTasksUpdated(confirmedTasks);
+          return;
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+          retryCount++;
+
+          // Aguarda antes de tentar novamente (backoff exponencial)
+          if (retryCount < MAX_RETRIES) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * Math.pow(2, retryCount))
+            );
+          }
+        }
+      }
+
+      throw lastError || new Error("Update failed after multiple attempts");
     } catch (error) {
-      // Reverte se houver erro
-      onTasksUpdated(tasks);
-      setError(
-        `Failed to update task: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+      // Fallback para estado original
+      onTasksUpdated(originalTasks);
+
+      // Mensagens de erro específicas
+      const errorMessage =
+        error instanceof Error
+          ? error.message.includes("Network error")
+            ? "Network problems detected. Please check your connection."
+            : "Failed to save changes. Please try again."
+          : "An unexpected error occurred";
+
+      setError(errorMessage);
+
+      // Log detalhado para desenvolvimento
+      if (process.env.NODE_ENV === "development") {
+        console.error("Task update failed:", {
+          taskId,
+          appointmentId,
+          completed,
+          error: error instanceof Error ? error.stack : error,
+        });
+      }
     } finally {
       setLoadingTaskId(null);
     }
   };
-
   const handleDeleteTask = async (taskId: string) => {
     try {
       setLoadingTaskId(taskId);

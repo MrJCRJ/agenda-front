@@ -19,12 +19,29 @@ interface RecurrenceQueryParams {
   endDate?: string;
 }
 
+interface TaskResponse extends Task {
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Helper para garantir o formato das tasks
+const ensureTaskFormat = (task: TaskResponse): Task => ({
+  _id: task._id,
+  description: task.description,
+  completed: task.completed,
+  ...(task.createdAt && { createdAt: task.createdAt }),
+  ...(task.updatedAt && { updatedAt: task.updatedAt }),
+});
+
 export const createAppointment = async (
   appointment: AppointmentCreate
 ): Promise<Appointment> => {
   return fetchApi<Appointment>(APPOINTMENTS_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(appointment),
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
 };
 
@@ -63,6 +80,9 @@ export const updateAppointment = async (
   return fetchApi<Appointment>(`${APPOINTMENTS_ENDPOINT}/${id}`, {
     method: "PATCH",
     body: JSON.stringify(appointment),
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
 };
 
@@ -83,10 +103,21 @@ export const addTask = async (
   appointmentId: string,
   task: TaskCreate
 ): Promise<Task> => {
-  return fetchApi<Task>(`${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks`, {
-    method: "POST",
-    body: JSON.stringify(task),
-  });
+  const response = await fetchApi<TaskResponse>(
+    `${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        ...task,
+        completed: false,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  return ensureTaskFormat(response);
 };
 
 export const updateTask = async (
@@ -94,13 +125,44 @@ export const updateTask = async (
   taskId: string,
   task: TaskUpdate
 ): Promise<Task> => {
-  return fetchApi<Task>(
-    `${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks/${taskId}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(task),
+  console.log("Enviando atualização de tarefa:", {
+    appointmentId,
+    taskId,
+    task,
+  });
+
+  try {
+    const response = await fetchApi<TaskResponse>(
+      `${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks/${taskId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          completed: task.completed,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      }
+    );
+
+    console.log("Resposta da atualização:", response);
+
+    if (!response?._id) {
+      throw new Error("Resposta inválida do servidor");
     }
-  );
+
+    return ensureTaskFormat(response);
+  } catch (error) {
+    console.error("Erro completo na atualização:", error);
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
+      throw new Error("Erro de conexão. Verifique sua internet.");
+    }
+    throw new Error(`Falha ao atualizar tarefa: ${error}`);
+  }
 };
 
 export const deleteTask = async (
@@ -115,7 +177,16 @@ export const deleteTask = async (
   );
 };
 
-// Função de recorrência modificada para usar string diretamente
+export const getTask = async (
+  appointmentId: string,
+  taskId: string
+): Promise<Task> => {
+  const response = await fetchApi<TaskResponse>(
+    `${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks/${taskId}`
+  );
+  return ensureTaskFormat(response);
+};
+
 export const applyRecurrenceRule = async (
   appointmentId: string,
   rule: string
@@ -125,6 +196,9 @@ export const applyRecurrenceRule = async (
     {
       method: "POST",
       body: JSON.stringify({ rule }),
+      headers: {
+        "Content-Type": "application/json",
+      },
     }
   );
 };
