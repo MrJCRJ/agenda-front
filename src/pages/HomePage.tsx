@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import { AppointmentForm } from "../components/AppointmentForm";
 import { AppointmentList } from "../components/AppointmentList";
-import {
-  getAppointments,
-  deleteAppointment,
-} from "../services/appointmentService";
+import { getAppointments } from "../services/appointmentService";
 import { Appointment } from "../types/appointment";
 
 export const HomePage = () => {
@@ -29,16 +26,6 @@ export const HomePage = () => {
       console.error(err);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteAppointment(id);
-      await fetchAppointments();
-    } catch (err) {
-      setError("Failed to delete appointment");
-      console.error(err);
     }
   };
 
@@ -122,11 +109,7 @@ export const HomePage = () => {
               )}
             </div>
           </div>
-          <AppointmentList
-            appointments={appointments}
-            onDelete={handleDelete}
-            onEdit={setEditingAppointment}
-          />
+          <AppointmentList appointments={appointments} />
         </div>
       </div>
     </div>

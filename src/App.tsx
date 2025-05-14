@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { HomePage } from "./pages/HomePage";
-import { AppointmentPage } from "./pages/AppointmentPage";
 import { Navbar } from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
 
@@ -18,10 +17,7 @@ function App() {
           <div className="mx-auto max-w-7xl">
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/appointment">
-                <Route index element={<AppointmentPage />} />
-                <Route path=":id" element={<AppointmentPage />} />
-              </Route>
+              <Route path="/appointment"></Route>
             </Routes>
           </div>
         </main>
