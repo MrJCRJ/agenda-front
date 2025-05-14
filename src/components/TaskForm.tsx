@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { Task } from "../types/appointment";
-import { updateTask, addTask } from "../services/appointmentService";
+import { addTask } from "../services/appointmentService";
 
 interface TaskFormProps {
   appointmentId: string;
   onTaskAdded: (task: Task) => void;
+  onTaskUpdated?: (task: Task) => void;
   existingTask?: Task;
+  resetForm?: () => void;
 }
 
 export const TaskForm = ({
   appointmentId,
   onTaskAdded,
+
   existingTask,
 }: TaskFormProps) => {
   const [description, setDescription] = useState(
@@ -32,20 +35,14 @@ export const TaskForm = ({
     try {
       const newTask = {
         description,
-        completed: existingTask?.completed || false,
+        completed: false,
       };
 
-      if (existingTask?._id) {
-        const updatedTask = await updateTask(
-          appointmentId,
-          existingTask._id,
-          newTask
-        );
-        onTaskAdded(updatedTask);
-      } else {
-        const addedTask = await addTask(appointmentId, newTask);
-        onTaskAdded(addedTask);
-      }
+      const addedTask = await addTask(appointmentId, newTask);
+      onTaskAdded({
+        ...addedTask,
+        description, // Garante que a descrição está presente
+      });
 
       setDescription("");
     } catch (error) {

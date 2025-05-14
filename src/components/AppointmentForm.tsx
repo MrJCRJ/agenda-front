@@ -23,6 +23,7 @@ const APPOINTMENT_TYPES = [
   { value: "Padaria", label: "Padaria" },
   { value: "HeroPet", label: "HeroPet" },
   { value: "Tarefas", label: "Tarefas" },
+  { value: "Projeto", label: "Projeto" },
 ];
 
 export const AppointmentForm = ({

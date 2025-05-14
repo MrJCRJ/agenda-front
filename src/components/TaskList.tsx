@@ -5,7 +5,7 @@ import { useState } from "react";
 interface TaskListProps {
   tasks: Task[];
   appointmentId: string;
-  onTasksUpdated: () => void;
+  onTasksUpdated: (updatedTasks: Task[]) => void;
 }
 
 export const TaskList = ({
@@ -20,9 +20,25 @@ export const TaskList = ({
     try {
       setLoadingTaskId(taskId);
       setError(null);
+
+      // Atualização otimista
+      const updatedTasks = tasks.map((task) =>
+        task._id === taskId ? { ...task, completed } : task
+      );
+      onTasksUpdated(updatedTasks);
+
+      // Chamada API
       await updateTask(appointmentId, taskId, { completed });
-      onTasksUpdated();
+
+      // Confirmação da API
+      const confirmedTask = await getTask(appointmentId, taskId); // Você precisará criar esta função
+      const finalUpdatedTasks = tasks.map((task) =>
+        task._id === taskId ? confirmedTask : task
+      );
+      onTasksUpdated(finalUpdatedTasks);
     } catch (error) {
+      // Reverte se houver erro
+      onTasksUpdated(tasks);
       setError(
         `Failed to update task: ${
           error instanceof Error ? error.message : String(error)
@@ -37,8 +53,12 @@ export const TaskList = ({
     try {
       setLoadingTaskId(taskId);
       setError(null);
+
       await deleteTask(appointmentId, taskId);
-      onTasksUpdated();
+
+      // Remove a task da lista localmente
+      const updatedTasks = tasks.filter((task) => task._id !== taskId);
+      onTasksUpdated(updatedTasks);
     } catch (error) {
       setError(
         `Failed to delete task: ${
@@ -122,7 +142,7 @@ export const TaskList = ({
                       type="checkbox"
                       checked={task.completed || false}
                       onChange={(e) =>
-                        handleTaskCompletion(task._id!, e.target.checked)
+                        handleTaskCompletion(task._id ?? "", e.target.checked)
                       }
                       className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0"
                       disabled={loadingTaskId !== null}
@@ -141,7 +161,7 @@ export const TaskList = ({
                 </div>
 
                 <button
-                  onClick={() => handleDeleteTask(task._id!)}
+                  onClick={() => handleDeleteTask(task._id ?? "")}
                   disabled={loadingTaskId !== null}
                   className="p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                   aria-label="Delete task"
