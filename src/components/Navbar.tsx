@@ -82,14 +82,6 @@ export const Navbar = () => {
             >
               Home
             </Link>
-            <Link
-              to="/appointment"
-              className={`text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors ${isActive(
-                "/appointment"
-              )}`}
-            >
-              New Appointment
-            </Link>
           </div>
 
           {/* Mobile menu button */}

@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { HomePage } from "./pages/HomePage";
 import { AppointmentPage } from "./pages/AppointmentPage";
-import { RecurrencePage } from "./pages/RecurrencePage";
 import { Navbar } from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
 
@@ -23,7 +22,6 @@ function App() {
                 <Route index element={<AppointmentPage />} />
                 <Route path=":id" element={<AppointmentPage />} />
               </Route>
-              <Route path="/recurrence/:id" element={<RecurrencePage />} />
             </Routes>
           </div>
         </main>
