@@ -79,19 +79,19 @@ export const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-4 px-2 sm:px-4 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
             Appointment Scheduler
           </h1>
-          <p className="mt-3 text-xl text-gray-500">
+          <p className="mt-2 text-base text-gray-600 sm:text-lg">
             Manage your appointments efficiently
           </p>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="bg-white shadow-sm rounded-lg p-4 mb-6 sm:p-6 sm:shadow-md">
+          <h2 className="text-lg font-medium text-gray-900 mb-3">
             {editingAppointment ? "Edit Appointment" : "Create New Appointment"}
           </h2>
           <AppointmentForm
@@ -103,15 +103,24 @@ export const HomePage = () => {
           />
         </div>
 
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">
-              Upcoming Appointments
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              {appointments.length} appointment
-              {appointments.length !== 1 ? "s" : ""} scheduled
-            </p>
+        <div className="bg-white shadow-sm rounded-lg overflow-hidden sm:shadow-md">
+          <div className="px-4 py-3 border-b border-gray-200 sm:px-6 sm:py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">
+                  Upcoming Appointments
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {appointments.length} appointment
+                  {appointments.length !== 1 ? "s" : ""} scheduled
+                </p>
+              </div>
+              {appointments.length > 0 && (
+                <div className="mt-2 sm:mt-0 text-xs text-gray-500">
+                  Swipe left on items to edit/delete
+                </div>
+              )}
+            </div>
           </div>
           <AppointmentList
             appointments={appointments}

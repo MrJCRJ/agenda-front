@@ -20,16 +20,14 @@ export const TaskList = ({
     try {
       setLoadingTaskId(taskId);
       setError(null);
-
-      console.log("Attempting to update:", { appointmentId, taskId });
-
-      const updated = await updateTask(appointmentId, taskId, { completed });
-      console.log("Update successful:", updated);
-
+      await updateTask(appointmentId, taskId, { completed });
       onTasksUpdated();
     } catch (error) {
-      console.error("Update failed:", error);
-      setError(`Failed to update task: ${error}`);
+      setError(
+        `Failed to update task: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     } finally {
       setLoadingTaskId(null);
     }
@@ -42,21 +40,62 @@ export const TaskList = ({
       await deleteTask(appointmentId, taskId);
       onTasksUpdated();
     } catch (error) {
-      setError(`Failed to delete task: ${error}`);
+      setError(
+        `Failed to delete task: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     } finally {
       setLoadingTaskId(null);
     }
   };
 
   if (!tasks || tasks.length === 0) {
-    return <p className="text-gray-500 py-4">No tasks for this appointment.</p>;
+    return (
+      <div className="text-center py-6">
+        <svg
+          className="mx-auto h-12 w-12 text-gray-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1}
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
+        <h3 className="mt-2 text-sm font-medium text-gray-900">No tasks</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          Add tasks to this appointment
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {error && (
-        <div className="bg-red-50 text-red-600 p-2 rounded text-sm mb-2">
-          {error}
+        <div className="bg-red-50 border-l-4 border-red-500 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-500"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -68,11 +107,16 @@ export const TaskList = ({
           }
 
           return (
-            <li key={`${task._id}-${task.description}`} className="py-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 min-w-0">
+            <li
+              key={task._id}
+              className="py-3 px-2 hover:bg-gray-50 rounded-lg"
+            >
+              <div className="flex items-center justify-between space-x-3">
+                <div className="flex items-center min-w-0 flex-1">
                   {loadingTaskId === task._id ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-t-2 border-blue-500" />
+                    <div className="h-5 w-5 flex-shrink-0 flex items-center justify-center">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                    </div>
                   ) : (
                     <input
                       type="checkbox"
@@ -80,12 +124,12 @@ export const TaskList = ({
                       onChange={(e) =>
                         handleTaskCompletion(task._id!, e.target.checked)
                       }
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0"
                       disabled={loadingTaskId !== null}
                     />
                   )}
                   <span
-                    className={`text-sm truncate ${
+                    className={`ml-3 text-base truncate ${
                       task.completed
                         ? "line-through text-gray-400"
                         : "text-gray-700"
@@ -99,11 +143,12 @@ export const TaskList = ({
                 <button
                   onClick={() => handleDeleteTask(task._id!)}
                   disabled={loadingTaskId !== null}
-                  className="text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  className="p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                  aria-label="Delete task"
                 >
                   {loadingTaskId === task._id ? (
                     <svg
-                      className="animate-spin h-4 w-4 text-red-600"
+                      className="animate-spin h-5 w-5 text-gray-400"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"

@@ -3,49 +3,86 @@ import { Appointment, Task } from "../types/appointment";
 
 const APPOINTMENTS_ENDPOINT = "/appointments";
 
+type AppointmentCreate = Omit<Appointment, "_id" | "createdAt" | "updatedAt">;
+type AppointmentUpdate = Partial<AppointmentCreate>;
+type TaskCreate = Omit<Task, "_id">;
+type TaskUpdate = Partial<TaskCreate>;
+
+interface DeleteResponse {
+  message: string;
+  deletedCount: number;
+}
+
+interface RecurrenceQueryParams {
+  recurrenceId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 export const createAppointment = async (
-  appointment: Omit<Appointment, "_id">
-) => {
+  appointment: AppointmentCreate
+): Promise<Appointment> => {
   return fetchApi<Appointment>(APPOINTMENTS_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(appointment),
   });
 };
 
-export const getAppointments = async (query?: string) => {
-  const endpoint = query
-    ? `${APPOINTMENTS_ENDPOINT}?${query}`
+export const getAppointments = async (
+  queryParams?: RecurrenceQueryParams | string
+): Promise<Appointment[]> => {
+  let queryString = "";
+
+  if (typeof queryParams === "string") {
+    queryString = queryParams;
+  } else if (queryParams) {
+    const params = new URLSearchParams();
+    if (queryParams.recurrenceId)
+      params.append("recurrenceId", queryParams.recurrenceId);
+    if (queryParams.startDate)
+      params.append("startDate", queryParams.startDate);
+    if (queryParams.endDate) params.append("endDate", queryParams.endDate);
+    queryString = params.toString();
+  }
+
+  const endpoint = queryString
+    ? `${APPOINTMENTS_ENDPOINT}?${queryString}`
     : APPOINTMENTS_ENDPOINT;
+
   return fetchApi<Appointment[]>(endpoint);
 };
 
-export const getAppointment = async (id: string) => {
+export const getAppointment = async (id: string): Promise<Appointment> => {
   return fetchApi<Appointment>(`${APPOINTMENTS_ENDPOINT}/${id}`);
 };
 
 export const updateAppointment = async (
   id: string,
-  appointment: Partial<Appointment>
-) => {
+  appointment: AppointmentUpdate
+): Promise<Appointment> => {
   return fetchApi<Appointment>(`${APPOINTMENTS_ENDPOINT}/${id}`, {
-    method: "PUT",
+    method: "PATCH",
     body: JSON.stringify(appointment),
   });
 };
 
-export const deleteAppointment = async (id: string, allRecurring = false) => {
+export const deleteAppointment = async (
+  id: string,
+  allRecurring: boolean = false
+): Promise<DeleteResponse> => {
   const endpoint = allRecurring
     ? `${APPOINTMENTS_ENDPOINT}/${id}?allRecurring=true`
     : `${APPOINTMENTS_ENDPOINT}/${id}`;
-  return fetchApi<{ message: string }>(endpoint, {
+
+  return fetchApi<DeleteResponse>(endpoint, {
     method: "DELETE",
   });
 };
 
 export const addTask = async (
   appointmentId: string,
-  task: Omit<Task, "_id">
-) => {
+  task: TaskCreate
+): Promise<Task> => {
   return fetchApi<Task>(`${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks`, {
     method: "POST",
     body: JSON.stringify(task),
@@ -55,22 +92,39 @@ export const addTask = async (
 export const updateTask = async (
   appointmentId: string,
   taskId: string,
-  task: Partial<Task>
-) => {
+  task: TaskUpdate
+): Promise<Task> => {
   return fetchApi<Task>(
     `${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks/${taskId}`,
     {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(task),
     }
   );
 };
 
-export const deleteTask = async (appointmentId: string, taskId: string) => {
-  return fetchApi<{ message: string }>(
+export const deleteTask = async (
+  appointmentId: string,
+  taskId: string
+): Promise<DeleteResponse> => {
+  return fetchApi<DeleteResponse>(
     `${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks/${taskId}`,
     {
       method: "DELETE",
+    }
+  );
+};
+
+// Função de recorrência modificada para usar string diretamente
+export const applyRecurrenceRule = async (
+  appointmentId: string,
+  rule: string
+): Promise<Appointment[]> => {
+  return fetchApi<Appointment[]>(
+    `${APPOINTMENTS_ENDPOINT}/${appointmentId}/recurrence`,
+    {
+      method: "POST",
+      body: JSON.stringify({ rule }),
     }
   );
 };
