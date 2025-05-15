@@ -168,8 +168,9 @@ export const updateTask = async (
 export const deleteTask = async (
   appointmentId: string,
   taskId: string
-): Promise<DeleteResponse> => {
-  return fetchApi<DeleteResponse>(
+): Promise<Appointment> => {
+  // Alterado para retornar Appointment
+  return fetchApi<Appointment>(
     `${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks/${taskId}`,
     {
       method: "DELETE",
