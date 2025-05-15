@@ -13,7 +13,6 @@ interface TaskFormProps {
 export const TaskForm = ({
   appointmentId,
   onTaskAdded,
-
   existingTask,
 }: TaskFormProps) => {
   const [description, setDescription] = useState(
@@ -34,16 +33,21 @@ export const TaskForm = ({
 
     try {
       const newTask = {
-        description,
+        description: description.trim(),
         completed: false,
       };
 
       const addedTask = await addTask(appointmentId, newTask);
-      onTaskAdded({
-        ...addedTask,
-        description, // Garante que a descrição está presente
-      });
 
+      // Garante que a task tem todos os campos necessários
+      const completeTask: Task = {
+        ...addedTask,
+        description: description.trim(),
+        completed: false,
+        _id: addedTask._id || Math.random().toString(36).substring(2, 9), // ID temporário se não vier do backend
+      };
+
+      onTaskAdded(completeTask);
       setDescription("");
     } catch (error) {
       setError("Failed to save task. Please try again.");

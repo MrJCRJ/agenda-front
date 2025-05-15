@@ -17,9 +17,20 @@ export const TaskList = ({
   const [error, setError] = useState<string | null>(null);
 
   const handleTaskCompletion = async (taskId: string, completed: boolean) => {
+    // Adicione esta verificação IMEDIATAMENTE
+    console.log("IDs sendo usados:", {
+      appointmentId,
+      taskId,
+      isSame: appointmentId === taskId, // Não devem ser iguais!
+    });
+
+    if (appointmentId === taskId) {
+      console.error("ERRO CRÍTICO: taskId igual ao appointmentId");
+      return;
+    }
+
     setLoadingTaskId(taskId);
     setError(null);
-    const originalTasks = [...tasks];
 
     try {
       // Atualização otimista
@@ -28,61 +39,56 @@ export const TaskList = ({
       );
       onTasksUpdated(optimisticTasks);
 
-      const updatedTask = await updateTask(appointmentId, taskId, {
+      // Chamada API
+      const updatedAppointment = await updateTask(appointmentId, taskId, {
         completed,
       });
 
-      // Atualização confirmada
-      const confirmedTasks = tasks.map((task) =>
-        task._id === taskId ? updatedTask : task
-      );
-      onTasksUpdated(confirmedTasks);
-    } catch (error) {
-      // Fallback para estado original
-      onTasksUpdated(originalTasks);
-
-      const errorMessage =
-        error instanceof Error
-          ? error.message.includes("Network error")
-            ? "Network problems detected. Please check your connection."
-            : "Failed to save changes. Please try again."
-          : "An unexpected error occurred";
-
-      setError(errorMessage);
-
-      if (process.env.NODE_ENV === "development") {
-        console.error("Task update failed:", {
-          taskId,
-          appointmentId,
-          completed,
-          error: error instanceof Error ? error.stack : error,
-        });
+      // Verificação de tipo segura
+      if (!updatedAppointment?.tasks) {
+        throw new Error("Invalid response from server");
       }
+
+      // Atualização confirmada
+      onTasksUpdated(updatedAppointment.tasks);
+    } catch (error: unknown) {
+      // Reverter para estado anterior em caso de erro
+      onTasksUpdated(tasks);
+
+      const message = error instanceof Error ? error.message : "Update failed";
+      setError(message);
+      console.error("Task update error:", {
+        appointmentId,
+        taskId,
+        error: message,
+      });
     } finally {
       setLoadingTaskId(null);
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
+    setLoadingTaskId(taskId);
+    setError(null);
+
     try {
-      setLoadingTaskId(taskId);
-      setError(null);
+      // Atualização otimista
+      const updatedTasks = tasks.filter((task) => task._id !== taskId);
+      onTasksUpdated(updatedTasks);
 
-      const updatedAppointment = await deleteTask(appointmentId, taskId);
+      // Chamada API com tratamento específico
+      const response = await deleteTask(appointmentId, taskId);
 
-      // Verifica se updatedAppointment e updatedAppointment.tasks existem
-      if (!updatedAppointment?.tasks) {
-        throw new Error("No tasks array in response");
+      if (!response || !response.tasks) {
+        throw new Error("Invalid response from server");
       }
-
-      // Atualiza a lista de tasks com as tasks retornadas
-      onTasksUpdated(updatedAppointment.tasks);
     } catch (error) {
-      setError(
-        `Failed to delete task: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+      if (error instanceof Error) {
+        setError(`Failed to delete task: ${error.message}`);
+      } else {
+        setError("Failed to delete task");
+      }
+      console.error("Deletion error:", error);
     } finally {
       setLoadingTaskId(null);
     }

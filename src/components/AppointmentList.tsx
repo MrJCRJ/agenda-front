@@ -6,6 +6,7 @@ import { deleteAppointment } from "../services/appointmentService";
 
 interface AppointmentListProps {
   appointments: Appointment[];
+  onAppointmentDeleted?: (deletedId: string) => void;
 }
 
 const EmptyState = () => (
@@ -65,15 +66,30 @@ const AppointmentDateTime = ({
   </div>
 );
 
-const AppointmentItem = ({ appointment }: { appointment: Appointment }) => {
+const AppointmentItem = ({
+  appointment,
+  onAppointmentDeleted,
+}: {
+  appointment: Appointment;
+  onAppointmentDeleted?: (deletedId: string) => void;
+}) => {
   const [isCurrent, setIsCurrent] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
   const [tasks, setTasks] = useState(appointment.tasks || []);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Adicione esta função para atualizar as tasks
+  const handleTaskAdded = (newTask: Task) => {
+    setTasks((prevTasks) => [...prevTasks, newTask]);
+  };
+
   const handleTasksUpdated = (updatedTasks: Task[]) => {
     setTasks(updatedTasks);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Isso impede que o evento borbulhe para o elemento pai
+    handleDeleteAppointment();
   };
 
   const handleDeleteAppointment = async () => {
@@ -82,8 +98,9 @@ const AppointmentItem = ({ appointment }: { appointment: Appointment }) => {
     setIsDeleting(true);
     try {
       await deleteAppointment(appointment._id);
-      // Você pode querer adicionar um callback para notificar o componente pai
-      // ou usar um contexto/state management para atualizar a lista
+      if (onAppointmentDeleted) {
+        onAppointmentDeleted(appointment._id);
+      }
     } catch (error) {
       console.error("Failed to delete appointment:", error);
     } finally {
@@ -104,10 +121,6 @@ const AppointmentItem = ({ appointment }: { appointment: Appointment }) => {
 
     return () => clearInterval(interval);
   }, [appointment.start, appointment.end]);
-
-  const handleTaskAdded = (newTask: Task) => {
-    setTasks([...tasks, newTask]);
-  };
 
   const date = new Date(appointment.start).toLocaleDateString([], {
     month: "short",
@@ -156,7 +169,7 @@ const AppointmentItem = ({ appointment }: { appointment: Appointment }) => {
           />
 
           <button
-            onClick={handleDeleteAppointment}
+            onClick={handleDeleteClick} // Usamos a nova função aqui
             disabled={isDeleting}
             className="ml-2 p-1 text-red-500 hover:text-red-700"
             title="Delete appointment"
@@ -198,18 +211,33 @@ const AppointmentItem = ({ appointment }: { appointment: Appointment }) => {
   );
 };
 
-export const AppointmentList = ({ appointments }: AppointmentListProps) => {
+export const AppointmentList = ({
+  appointments: initialAppointments,
+  onAppointmentDeleted,
+}: AppointmentListProps) => {
+  const [appointments, setAppointments] =
+    useState<Appointment[]>(initialAppointments);
   const [sortedAppointments, setSortedAppointments] = useState<Appointment[]>(
     []
   );
 
   useEffect(() => {
-    // Ordena do mais recente para o mais antigo (mais recentes no topo)
+    setAppointments(initialAppointments);
+  }, [initialAppointments]);
+
+  useEffect(() => {
     const sorted = [...appointments].sort((a, b) => {
       return new Date(b.start).getTime() - new Date(a.start).getTime();
     });
     setSortedAppointments(sorted);
   }, [appointments]);
+
+  const handleAppointmentDeleted = (deletedId: string) => {
+    setAppointments((prev) => prev.filter((app) => app._id !== deletedId));
+    if (onAppointmentDeleted) {
+      onAppointmentDeleted(deletedId);
+    }
+  };
 
   if (sortedAppointments.length === 0) {
     return <EmptyState />;
@@ -223,7 +251,11 @@ export const AppointmentList = ({ appointments }: AppointmentListProps) => {
 
       <ul className="space-y-2">
         {sortedAppointments.map((appointment) => (
-          <AppointmentItem key={appointment._id} appointment={appointment} />
+          <AppointmentItem
+            key={appointment._id}
+            appointment={appointment}
+            onAppointmentDeleted={handleAppointmentDeleted}
+          />
         ))}
       </ul>
     </div>

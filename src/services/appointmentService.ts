@@ -6,7 +6,6 @@ const APPOINTMENTS_ENDPOINT = "/appointments";
 type AppointmentCreate = Omit<Appointment, "_id" | "createdAt" | "updatedAt">;
 type AppointmentUpdate = Partial<AppointmentCreate>;
 type TaskCreate = Omit<Task, "_id">;
-type TaskUpdate = Partial<TaskCreate>;
 
 interface DeleteResponse {
   message: string;
@@ -24,7 +23,6 @@ interface TaskResponse extends Task {
   updatedAt?: string;
 }
 
-// Helper para garantir o formato das tasks
 const ensureTaskFormat = (task: TaskResponse): Task => ({
   _id: task._id,
   description: task.description,
@@ -123,59 +121,87 @@ export const addTask = async (
 export const updateTask = async (
   appointmentId: string,
   taskId: string,
-  task: TaskUpdate
-): Promise<Task> => {
-  console.log("Enviando atualização de tarefa:", {
-    appointmentId,
-    taskId,
-    task,
-  });
-
+  updateData: { completed: boolean }
+): Promise<Appointment> => {
   try {
-    const response = await fetchApi<TaskResponse>(
+    // Adicione logs para depuração
+    console.log("Updating task with ID:", {
+      taskId,
+      type: typeof taskId,
+      appointmentId,
+    });
+
+    const response = await fetchApi<Appointment>(
       `${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks/${taskId}`,
       {
         method: "PATCH",
         body: JSON.stringify({
-          completed: task.completed,
+          completed: updateData.completed,
+          // Garanta que o ID está no formato correto
+          taskId: taskId,
         }),
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",
         },
       }
     );
 
-    console.log("Resposta da atualização:", response);
-
-    if (!response?._id) {
-      throw new Error("Resposta inválida do servidor");
+    // Verificação mais robusta
+    if (!response?._id || !response.tasks) {
+      console.error("Invalid server response", response);
+      throw new Error("Invalid server response");
     }
 
-    return ensureTaskFormat(response);
+    // Verifique se a task atualizada está na resposta
+    const updatedTask = response.tasks.find((t) => t._id === taskId);
+    if (!updatedTask) {
+      console.error("Task not found in response", {
+        expectedId: taskId,
+        receivedIds: response.tasks.map((t) => t._id),
+      });
+      throw new Error("Task update not reflected in response");
+    }
+
+    return response;
   } catch (error) {
-    console.error("Erro completo na atualização:", error);
-    if (
-      error instanceof TypeError &&
-      error.message.includes("Failed to fetch")
-    ) {
-      throw new Error("Erro de conexão. Verifique sua internet.");
-    }
-    throw new Error(`Falha ao atualizar tarefa: ${error}`);
+    console.error("Update task error:", {
+      appointmentId,
+      taskId,
+      error: error instanceof Error ? error.message : error,
+    });
+    throw error;
   }
 };
+
+interface DeleteTaskResponse {
+  success: boolean;
+  tasks: Task[]; // Adicione esta linha
+  appointment?: Appointment;
+}
 
 export const deleteTask = async (
   appointmentId: string,
   taskId: string
-): Promise<Appointment> => {
-  // Alterado para retornar Appointment
-  return fetchApi<Appointment>(
-    `${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks/${taskId}`,
-    {
-      method: "DELETE",
+): Promise<DeleteTaskResponse> => {
+  try {
+    const response = await fetchApi<Appointment>(
+      `${APPOINTMENTS_ENDPOINT}/${appointmentId}/tasks/${taskId}`,
+      { method: "DELETE" }
+    );
+
+    if (!response?._id || !response.tasks) {
+      throw new Error("Resposta inválida do servidor após deleção");
     }
-  );
+
+    return {
+      success: true,
+      tasks: response.tasks, // Garante que tasks está incluído
+      appointment: response,
+    };
+  } catch (error) {
+    console.error("Erro na deleção:", error);
+    throw error;
+  }
 };
 
 export const getTask = async (
