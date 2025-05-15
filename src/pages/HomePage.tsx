@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AppointmentForm } from "../components/AppointmentForm";
-import { AppointmentList } from "../components/AppointmentList";
+import { AppointmentList } from "../components/appointments/AppointmentList";
 import { Modal } from "../components/Modal";
 import { getAppointments } from "../services/appointmentService";
 import { Appointment } from "../types/appointment";
