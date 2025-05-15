@@ -1,32 +1,43 @@
 import { useState, useEffect } from "react";
 import { AppointmentForm } from "../components/AppointmentForm";
 import { AppointmentList } from "../components/AppointmentList";
+import { Modal } from "../components/Modal";
 import { getAppointments } from "../services/appointmentService";
 import { Appointment } from "../types/appointment";
 
 export const HomePage = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [editingAppointment, setEditingAppointment] =
-    useState<Appointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchAppointments();
+    const loadAppointments = async () => {
+      try {
+        const data = await getAppointments();
+        setAppointments(data);
+      } catch (err) {
+        setError("Failed to load appointments. Please try again later.");
+        console.error("Error fetching appointments:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAppointments();
   }, []);
 
-  const fetchAppointments = async () => {
-    try {
-      setIsLoading(true);
-      const data = await getAppointments();
-      setAppointments(data);
-      setError(null);
-    } catch (err) {
-      setError("Failed to fetch appointments");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleAddAppointment = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleAppointmentCreated = (newAppointment: Appointment) => {
+    setAppointments((prev) => [...prev, newAppointment]);
+    handleCloseModal();
   };
 
   if (isLoading) {
@@ -40,25 +51,15 @@ export const HomePage = () => {
   if (error) {
     return (
       <div className="p-4 max-w-4xl mx-auto">
-        <div
-          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
-          role="alert"
-        >
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
           <strong className="font-bold">Error!</strong>
-          <span className="block sm:inline"> {error}</span>
+          <span className="block sm:inline ml-2">{error}</span>
           <button
-            onClick={fetchAppointments}
+            onClick={() => window.location.reload()}
             className="absolute top-0 bottom-0 right-0 px-4 py-3"
+            aria-label="Refresh"
           >
-            <svg
-              className="fill-current h-6 w-6 text-red-500"
-              role="button"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-            >
-              <title>Refresh</title>
-              <path d="M14.66 15.66A8 8 0 1 1 17 10h-2a6 6 0 1 0-1.76 4.24l1.42 1.42zM12 10h8l-4 4-4-4z" />
-            </svg>
+            <RefreshIcon />
           </button>
         </div>
       </div>
@@ -66,52 +67,87 @@ export const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 px-2 sm:px-4 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <header className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900">
             Appointment Scheduler
           </h1>
-          <p className="mt-2 text-base text-gray-600 sm:text-lg">
+          <p className="mt-2 text-lg text-gray-600">
             Manage your appointments efficiently
           </p>
+        </header>
+
+        <div className="flex justify-end">
+          <button
+            onClick={handleAddAppointment}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+          >
+            <PlusIcon />
+            Add Appointment
+          </button>
         </div>
 
-        <div className="bg-white shadow-sm rounded-lg p-4 mb-6 sm:p-6 sm:shadow-md">
-          <h2 className="text-lg font-medium text-gray-900 mb-3">
-            {editingAppointment ? "Edit Appointment" : "Create New Appointment"}
-          </h2>
-          <AppointmentForm
-            appointment={editingAppointment || undefined}
-            onSuccess={() => {
-              setEditingAppointment(null);
-              fetchAppointments();
-            }}
-          />
-        </div>
-
-        <div className="bg-white shadow-sm rounded-lg overflow-hidden sm:shadow-md">
-          <div className="px-4 py-3 border-b border-gray-200 sm:px-6 sm:py-4">
+        <section className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-xl font-semibold text-gray-900">
                   Upcoming Appointments
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  {appointments.length} appointment
-                  {appointments.length !== 1 ? "s" : ""} scheduled
+                <p className="mt-1 text-sm text-gray-500">
+                  {appointments.length}{" "}
+                  {appointments.length === 1 ? "appointment" : "appointments"}{" "}
+                  scheduled
                 </p>
               </div>
-              {appointments.length > 0 && (
-                <div className="mt-2 sm:mt-0 text-xs text-gray-500">
-                  Swipe left on items to edit/delete
-                </div>
-              )}
             </div>
           </div>
           <AppointmentList appointments={appointments} />
-        </div>
+        </section>
+
+        <Modal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          title="Create New Appointment"
+          blurBackdrop={true}
+        >
+          <AppointmentForm onSuccess={handleAppointmentCreated} />
+        </Modal>
       </div>
     </div>
   );
 };
+
+// Componentes de ícone auxiliares
+const RefreshIcon = () => (
+  <svg
+    className="h-6 w-6 text-red-500"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+    />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg
+    className="h-5 w-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+    />
+  </svg>
+);
