@@ -6,6 +6,7 @@ interface AppointmentDateTimeProps {
   isCurrent?: boolean;
   totalTasks: number;
   completedTasks: number;
+  compact?: boolean;
 }
 
 export const AppointmentDateTime = ({
@@ -13,6 +14,7 @@ export const AppointmentDateTime = ({
   isCurrent = false,
   totalTasks,
   completedTasks,
+  compact = false,
 }: AppointmentDateTimeProps) => {
   const date = new Date(appointment.start).toLocaleDateString([], {
     month: "short",
@@ -28,6 +30,30 @@ export const AppointmentDateTime = ({
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  if (compact) {
+    return (
+      <div className="text-xs text-gray-500">
+        <div className="flex items-center gap-1">
+          <span>{date}</span>
+          <span>•</span>
+          <span>
+            {startTime}-{endTime}
+          </span>
+          {isCurrent && (
+            <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+              Agora
+            </span>
+          )}
+        </div>
+        {totalTasks > 0 && (
+          <div className="mt-0.5">
+            {completedTasks}/{totalTasks} tasks
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-end">

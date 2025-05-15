@@ -72,31 +72,51 @@ export const AppointmentItem = ({
       } overflow-hidden hover:shadow-md transition-all`}
     >
       <div className="p-3 sm:p-4">
+        {/* Header - Cabeçalho do compromisso */}
         <div
-          className="flex items-center justify-between gap-4 cursor-pointer"
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer"
           onClick={() => setShowTasks(!showTasks)}
         >
-          <h3
-            className={`text-base font-medium ${
-              isCurrent ? "text-green-800" : "text-gray-900"
-            } truncate flex-1`}
-          >
-            {appointment.title}
-          </h3>
+          <div className="flex-1 min-w-0">
+            <h3
+              className={`text-base font-medium ${
+                isCurrent ? "text-green-800" : "text-gray-900"
+              } truncate`}
+            >
+              {appointment.title}
+            </h3>
 
-          <AppointmentDateTime
-            appointment={appointment}
-            isCurrent={isCurrent}
-            totalTasks={totalTasks}
-            completedTasks={completedTasks}
-          />
+            {/* Mostrar data/hora abaixo do título em mobile */}
+            <div className="sm:hidden mt-1">
+              <AppointmentDateTime
+                appointment={appointment}
+                isCurrent={isCurrent}
+                totalTasks={totalTasks}
+                completedTasks={completedTasks}
+                compact
+              />
+            </div>
+          </div>
 
-          <DeleteAppointmentButton
-            isDeleting={isDeleting}
-            onClick={handleDeleteClick}
-          />
+          <div className="flex items-center justify-between sm:justify-end gap-2">
+            {/* Data/hora - visível apenas em desktop */}
+            <div className="hidden sm:block">
+              <AppointmentDateTime
+                appointment={appointment}
+                isCurrent={isCurrent}
+                totalTasks={totalTasks}
+                completedTasks={completedTasks}
+              />
+            </div>
+
+            <DeleteAppointmentButton
+              isDeleting={isDeleting}
+              onClick={handleDeleteClick}
+            />
+          </div>
         </div>
 
+        {/* Tarefas - conteúdo expandido */}
         {showTasks && (
           <div className="mt-4 space-y-4">
             <TaskForm
