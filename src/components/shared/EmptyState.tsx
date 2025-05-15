@@ -26,8 +26,3 @@ export const EmptyState = ({ icon, title, description }: EmptyStateProps) => (
     <p className="mt-1 text-gray-500">{description}</p>
   </div>
 );
-
-EmptyState.defaultProps = {
-  title: "No appointments",
-  description: "Get started by creating a new appointment.",
-};

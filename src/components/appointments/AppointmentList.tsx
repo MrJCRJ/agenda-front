@@ -36,7 +36,12 @@ export const AppointmentList = ({
   };
 
   if (sortedAppointments.length === 0) {
-    return <EmptyState />;
+    return (
+      <EmptyState
+        title="No appointments"
+        description="Get started by creating a new appointment."
+      />
+    );
   }
 
   return (
