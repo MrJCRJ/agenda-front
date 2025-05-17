@@ -25,6 +25,9 @@ const APPOINTMENT_TYPES = [
   { value: "HeroPet", label: "HeroPet" },
   { value: "Tarefas", label: "Tarefas" },
   { value: "Projeto", label: "Projeto" },
+  { value: "Hobby", label: "Hobby" },
+  { value: "Estudo", label: "Estudo" },
+  { value: "Lazer", label: "Lazer" },
 ];
 
 export const AppointmentForm = ({

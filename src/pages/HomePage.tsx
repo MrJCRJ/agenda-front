@@ -1,8 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AppointmentForm } from "../components/AppointmentForm";
 import { AppointmentList } from "../components/appointments/AppointmentList";
+import { AppointmentsChart } from "../components/AppointmentsChart";
 import { Modal } from "../components/Modal";
-import { getAppointments } from "../services/appointmentService";
+import {
+  getAppointments,
+  deleteAppointment as deleteAppointmentService,
+} from "../services/appointmentService";
 import { Appointment } from "../types/appointment";
 
 export const HomePage = () => {
@@ -11,21 +15,24 @@ export const HomePage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    const loadAppointments = async () => {
-      try {
-        const data = await getAppointments();
-        setAppointments(data);
-      } catch (err) {
-        setError("Failed to load appointments. Please try again later.");
-        console.error("Error fetching appointments:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-    loadAppointments();
+      const appts = await getAppointments();
+      setAppointments(appts);
+    } catch (err) {
+      setError("Erro ao carregar dados");
+      console.error("loadData error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleAddAppointment = () => {
     setIsModalOpen(true);
@@ -35,9 +42,29 @@ export const HomePage = () => {
     setIsModalOpen(false);
   };
 
-  const handleAppointmentCreated = (newAppointment: Appointment) => {
-    setAppointments((prev) => [...prev, newAppointment]);
-    handleCloseModal();
+  const handleAppointmentCreated = async (newAppointment: Appointment) => {
+    try {
+      setAppointments((prev) => [...prev, newAppointment]);
+      handleCloseModal();
+    } catch (err) {
+      setError("Failed to update after creating appointment.");
+      console.error("Error:", err);
+    }
+  };
+
+  const handleDeleteAppointment = async (id: string) => {
+    try {
+      await deleteAppointmentService(id);
+      setAppointments((prev) => prev.filter((appt) => appt._id !== id));
+    } catch (err) {
+      setError("Failed to delete appointment. Please try again.");
+      console.error("Error deleting appointment:", err);
+    }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    loadData();
   };
 
   if (isLoading) {
@@ -55,11 +82,23 @@ export const HomePage = () => {
           <strong className="font-bold">Error!</strong>
           <span className="block sm:inline ml-2">{error}</span>
           <button
-            onClick={() => window.location.reload()}
+            onClick={handleRetry}
             className="absolute top-0 bottom-0 right-0 px-4 py-3"
             aria-label="Refresh"
           >
-            <RefreshIcon />
+            <svg
+              className="h-6 w-6 text-red-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
           </button>
         </div>
       </div>
@@ -78,18 +117,49 @@ export const HomePage = () => {
           </p>
         </header>
 
-        <div className="flex justify-end">
+        <section className="bg-white shadow rounded-lg overflow-hidden p-4">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">
+            Distribuição de Tempo
+          </h2>
+          <AppointmentsChart appointments={appointments} />
+        </section>
+
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-gray-800">
+            Your Appointments ({appointments.length})
+          </h2>
           <button
             onClick={handleAddAppointment}
             className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
           >
-            <PlusIcon />
-            Add Appointment
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+            <span className="ml-2">Add Appointment</span>
           </button>
         </div>
 
         <section className="bg-white shadow rounded-lg overflow-hidden">
-          <AppointmentList appointments={appointments} />
+          {appointments.length > 0 ? (
+            <AppointmentList
+              appointments={appointments}
+              onAppointmentDeleted={handleDeleteAppointment}
+            />
+          ) : (
+            <div className="p-6 text-center text-gray-500">
+              No appointments scheduled yet
+            </div>
+          )}
         </section>
 
         <Modal
@@ -104,36 +174,3 @@ export const HomePage = () => {
     </div>
   );
 };
-
-// Componentes de ícone auxiliares
-const RefreshIcon = () => (
-  <svg
-    className="h-6 w-6 text-red-500"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-    />
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg
-    className="h-5 w-5"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-    />
-  </svg>
-);

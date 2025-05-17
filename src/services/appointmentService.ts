@@ -23,6 +23,23 @@ interface TaskResponse extends Task {
   updatedAt?: string;
 }
 
+interface GroupedAppointmentsResponse {
+  title: string;
+  totalDuration: {
+    hours: number;
+    minutes: number;
+    totalMinutes: number;
+    formatted: string;
+  };
+  appointments: Appointment[];
+}
+
+interface DeleteTaskResponse {
+  success: boolean;
+  tasks: Task[]; // Adicione esta linha
+  appointment?: Appointment;
+}
+
 const ensureTaskFormat = (task: TaskResponse): Task => ({
   _id: task._id,
   description: task.description,
@@ -173,11 +190,36 @@ export const updateTask = async (
   }
 };
 
-interface DeleteTaskResponse {
-  success: boolean;
-  tasks: Task[]; // Adicione esta linha
-  appointment?: Appointment;
-}
+export const getAppointmentsGroupedByTitle = async (params?: {
+  startDate?: string;
+  endDate?: string;
+}): Promise<GroupedAppointmentsResponse[]> => {
+  let queryString = "";
+
+  if (params) {
+    const searchParams = new URLSearchParams();
+    if (params.startDate) searchParams.append("startDate", params.startDate);
+    if (params.endDate) searchParams.append("endDate", params.endDate);
+    queryString = searchParams.toString();
+  }
+
+  const endpoint = queryString
+    ? `${APPOINTMENTS_ENDPOINT}/grouped-by-title?${queryString}`
+    : `${APPOINTMENTS_ENDPOINT}/grouped-by-title`;
+
+  try {
+    const data = await fetchApi<GroupedAppointmentsResponse[]>(endpoint);
+
+    if (!Array.isArray(data)) {
+      throw new Error("Expected array response");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch grouped appointments:", error);
+    return [];
+  }
+};
 
 export const deleteTask = async (
   appointmentId: string,

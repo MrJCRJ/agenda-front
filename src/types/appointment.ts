@@ -15,3 +15,15 @@ export interface Task {
   description: string;
   completed?: boolean;
 }
+export interface AppointmentDuration {
+  hours: number;
+  minutes: number;
+  totalMinutes: number;
+  formatted: string;
+}
+
+export interface GroupedAppointmentsResponse {
+  title: string;
+  totalDuration: AppointmentDuration;
+  appointments: Appointment[];
+}
