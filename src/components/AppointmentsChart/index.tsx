@@ -14,20 +14,21 @@ import { FilterButtons } from "../FilterButtons";
 import { ErrorMessage } from "../ui/ErrorMessage";
 import { NoDataState } from "../NoDataState";
 import { createDateFilters, prepareChartData, getChartOptions } from "./utils";
-import { AppointmentsChartProps, DateFilterKey } from "./types";
+import { AppointmentsChartProps } from "./types";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 export const AppointmentsChart = ({
   appointments,
   maxItems = 8,
+  dateFilter,
+  onFilterChange,
 }: AppointmentsChartProps) => {
   const [groupedData, setGroupedData] = useState<GroupedAppointmentsResponse[]>(
     []
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dateFilter, setDateFilter] = useState<DateFilterKey>("today");
 
   const dateFilters = useMemo(() => createDateFilters(), []);
 
@@ -88,7 +89,7 @@ export const AppointmentsChart = ({
       <NoDataState
         dateFilters={dateFilters}
         dateFilter={dateFilter}
-        setDateFilter={setDateFilter}
+        setDateFilter={onFilterChange}
       />
     );
   }
@@ -105,7 +106,7 @@ export const AppointmentsChart = ({
         <FilterButtons
           dateFilters={dateFilters}
           currentFilter={dateFilter}
-          onFilterChange={setDateFilter}
+          onFilterChange={onFilterChange}
         />
       </div>
       <div className="h-[400px] w-full">

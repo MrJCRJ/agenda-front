@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { AppointmentForm } from "../components/AppointmentForm";
 import { AppointmentList } from "../components/appointments/AppointmentList";
 import { AppointmentsChart } from "../components/AppointmentsChart";
@@ -8,18 +8,39 @@ import {
   deleteAppointment as deleteAppointmentService,
 } from "../services/appointmentService";
 import { Appointment } from "../types/appointment";
+import { DateFilterKey } from "../components/AppointmentsChart/types";
+import {
+  createDateFilters,
+  adjustToLocalTimezone,
+} from "../components/AppointmentsChart/utils";
 
 export const HomePage = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilterKey>("today");
+
+  const dateFilters = useMemo(() => createDateFilters(), []);
+
+  // Memoize the filtered appointments
+  const filteredAppointments = useMemo(() => {
+    if (appointments.length === 0) return [];
+
+    const filter = dateFilters[dateFilter];
+    const startDate = new Date(filter.startDate);
+    const endDate = new Date(filter.endDate);
+
+    return appointments.filter((appt) => {
+      const apptDate = adjustToLocalTimezone(new Date(appt.start));
+      return apptDate >= startDate && apptDate <= endDate;
+    });
+  }, [appointments, dateFilter, dateFilters]);
 
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-
       const appts = await getAppointments();
       setAppointments(appts);
     } catch (err) {
@@ -65,6 +86,10 @@ export const HomePage = () => {
   const handleRetry = () => {
     setError(null);
     loadData();
+  };
+
+  const handleFilterChange = (filter: DateFilterKey) => {
+    setDateFilter(filter);
   };
 
   if (isLoading) {
@@ -118,15 +143,16 @@ export const HomePage = () => {
         </header>
 
         <section className="bg-white shadow rounded-lg overflow-hidden p-4">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800">
-            Distribuição de Tempo
-          </h2>
-          <AppointmentsChart appointments={appointments} />
+          <AppointmentsChart
+            appointments={appointments}
+            dateFilter={dateFilter}
+            onFilterChange={handleFilterChange}
+          />
         </section>
 
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-800">
-            Your Appointments ({appointments.length})
+            Your Appointments ({filteredAppointments.length})
           </h2>
           <button
             onClick={handleAddAppointment}
@@ -150,14 +176,14 @@ export const HomePage = () => {
         </div>
 
         <section className="bg-white shadow rounded-lg overflow-hidden">
-          {appointments.length > 0 ? (
+          {filteredAppointments.length > 0 ? (
             <AppointmentList
-              appointments={appointments}
+              appointments={filteredAppointments}
               onAppointmentDeleted={handleDeleteAppointment}
             />
           ) : (
             <div className="p-6 text-center text-gray-500">
-              No appointments scheduled yet
+              No appointments scheduled for the selected period
             </div>
           )}
         </section>

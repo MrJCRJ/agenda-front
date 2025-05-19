@@ -1,16 +1,17 @@
 import { Appointment } from "../../types/appointment";
-
-export type DateFilter = {
+export interface DateFilter {
   label: string;
   startDate: string;
   endDate: string;
-};
+}
 
 export type DateFilterKey = "today" | "week" | "month" | "all";
 
 export interface AppointmentsChartProps {
   appointments: Appointment[];
   maxItems?: number;
+  dateFilter: DateFilterKey;
+  onFilterChange: (filter: DateFilterKey) => void;
 }
 
 export interface GroupedAppointmentsResponse {

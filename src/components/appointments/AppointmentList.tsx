@@ -1,5 +1,4 @@
-// components/appointments/AppointmentList.tsx
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Appointment } from "../../types/appointment";
 import { EmptyState } from "../shared/EmptyState";
 import { AppointmentItem } from "./AppointmentItem";
@@ -10,30 +9,14 @@ interface AppointmentListProps {
 }
 
 export const AppointmentList = ({
-  appointments: initialAppointments,
+  appointments,
   onAppointmentDeleted,
 }: AppointmentListProps) => {
-  const [appointments, setAppointments] =
-    useState<Appointment[]>(initialAppointments);
-  const [sortedAppointments, setSortedAppointments] = useState<Appointment[]>(
-    []
-  );
-
-  useEffect(() => {
-    setAppointments(initialAppointments);
-  }, [initialAppointments]);
-
-  useEffect(() => {
-    const sorted = [...appointments].sort((a, b) => {
+  const sortedAppointments = useMemo(() => {
+    return [...appointments].sort((a, b) => {
       return new Date(b.start).getTime() - new Date(a.start).getTime();
     });
-    setSortedAppointments(sorted);
   }, [appointments]);
-
-  const handleAppointmentDeleted = (deletedId: string) => {
-    setAppointments((prev) => prev.filter((app) => app._id !== deletedId));
-    onAppointmentDeleted?.(deletedId);
-  };
 
   if (sortedAppointments.length === 0) {
     return (
@@ -55,7 +38,7 @@ export const AppointmentList = ({
           <AppointmentItem
             key={appointment._id}
             appointment={appointment}
-            onAppointmentDeleted={handleAppointmentDeleted}
+            onAppointmentDeleted={onAppointmentDeleted}
           />
         ))}
       </ul>
