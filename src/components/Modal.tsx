@@ -7,7 +7,6 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   size?: "sm" | "md" | "lg";
-  blurBackdrop?: boolean;
 }
 
 export const Modal = ({
@@ -16,7 +15,6 @@ export const Modal = ({
   title,
   children,
   size = "md",
-  blurBackdrop = false,
 }: ModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -25,6 +23,10 @@ export const Modal = ({
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
+      document.body.style.overflow = "hidden";
+      closeButtonRef.current?.focus();
+    } else {
+      document.body.style.overflow = "auto";
     }
   }, [isOpen]);
 
@@ -35,20 +37,9 @@ export const Modal = ({
       }
     };
 
-    const modalElement = modalRef.current;
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
-      closeButtonRef.current?.focus();
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "auto";
-      if (modalElement) modalElement.blur();
-    };
-  }, [isOpen, onClose]);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const handleAnimationEnd = () => {
     if (!isOpen) setIsVisible(false);
@@ -69,10 +60,9 @@ export const Modal = ({
       role="dialog"
       aria-labelledby="modal-title"
     >
+      {/* Backdrop simplificado sem blur */}
       <div
-        className={`fixed inset-0 bg-black/30 transition-opacity duration-300 ease-in-out ${
-          blurBackdrop ? "backdrop-blur-sm" : ""
-        }`}
+        className="fixed inset-0 bg-black/30"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -82,7 +72,7 @@ export const Modal = ({
         onAnimationEnd={handleAnimationEnd}
         className={`relative w-full ${
           sizeClasses[size]
-        } bg-white rounded-xl shadow-2xl transform transition-all duration-300 ease-in-out ${
+        } bg-white rounded-xl shadow-xl transform transition-all duration-300 ease-in-out ${
           isOpen
             ? "opacity-100 scale-100 animate-fade-in"
             : "opacity-0 scale-95 animate-fade-out"
@@ -121,7 +111,7 @@ export const Modal = ({
   );
 };
 
-/* Tailwind Animations */
+// Estilos de animação
 const styles = `
 @keyframes fade-in {
   from { opacity: 0; transform: scale(0.95); }
@@ -139,6 +129,10 @@ const styles = `
 }
 `;
 
-const styleElement = document.createElement("style");
-styleElement.textContent = styles;
-document.head.appendChild(styleElement);
+// Adiciona os estilos ao documento
+if (!document.getElementById("modal-styles")) {
+  const styleElement = document.createElement("style");
+  styleElement.id = "modal-styles";
+  styleElement.textContent = styles;
+  document.head.appendChild(styleElement);
+}
