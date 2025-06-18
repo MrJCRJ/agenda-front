@@ -1,28 +1,37 @@
+// src/App.tsx
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { HomePage } from "./pages/HomePage";
 import { Navbar } from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
+import { useBackendConnection } from "./hooks/useBackendConnection";
+import { ConnectionSpinner } from "./components/Spinner";
 
 function App() {
+  const isBackendConnected = useBackendConnection();
+
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-gray-50">
+        {/* Mostra o spinner enquanto não conectar */}
+        {!isBackendConnected && <ConnectionSpinner />}
+
         {/* Navigation Bar - Fixed at top */}
         <header className="sticky top-0 z-10">
           <Navbar />
         </header>
 
-        {/* Main Content with responsive padding */}
-        <main className="flex-grow px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/appointment"></Route>
-            </Routes>
-          </div>
-        </main>
+        {/* Main Content - Só mostra quando conectar */}
+        {isBackendConnected && (
+          <main className="flex-grow px-4 py-6 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/appointment"></Route>
+              </Routes>
+            </div>
+          </main>
+        )}
 
-        {/* Notification Toaster with mobile-friendly positioning */}
         <Toaster
           position="top-center"
           toastOptions={{

@@ -1,3 +1,5 @@
+// src/services/api.ts
+
 interface ApiError extends Error {
   status?: number;
   data?: unknown;
